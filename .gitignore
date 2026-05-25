@@ -1,0 +1,76 @@
+# ==============================
+# DEPENDENCIES
+# ==============================
+node_modules/
+.pnp
+.pnp.js
+
+# ==============================
+# ENVIRONMENT VARIABLES
+# ==============================
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# ==============================
+# BUILD OUTPUT
+# ==============================
+dist/
+build/
+out/
+
+# ==============================
+# PRISMA
+# ==============================
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev/
+
+# ==============================
+# LOGS
+# ==============================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================
+# CACHE
+# ==============================
+.cache/
+.vite/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# ==============================
+# TESTS
+# ==============================
+coverage/
+.nyc_output/
+
+# ==============================
+# OS
+# ==============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==============================
+# IDE
+# ==============================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ==============================
+# MISC
+# ==============================
+*.local

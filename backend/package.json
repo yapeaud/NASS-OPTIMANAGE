@@ -1,0 +1,25 @@
+{
+  "name": "nass-optimanage-back",
+  "version": "1.0.0",
+  "description": "API nass-optimanage-back",
+  "license": "ISC",
+  "author": "Yapeaud Beda",
+  "type": "module",
+  "main": "server",
+  "scripts": {
+    "start": "node src/server",
+    "dev": "nodemon src/server"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^7.8.0"
+  }
+}

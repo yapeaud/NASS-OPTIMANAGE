@@ -1,0 +1,544 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =========================
+// ENUMS
+// =========================
+
+enum MethodePaiement {
+  ESPECES
+  CARTE
+  MOBILE_MONEY
+  CHEQUE
+}
+
+enum StatutPaiement {
+  PAYE
+  PARTIEL
+  IMPAYE
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  VENDEUR
+  MONTEUR
+}
+
+enum TypeProduit {
+  MONTURE
+  VERRE
+  LENTILLE
+  ACCESSOIRE
+}
+
+enum StatutAtelier {
+  COMMANDE_PASSEE
+  EN_COURS
+  TERMINE
+  PRODUIT_PRET
+}
+
+enum StatutDevis {
+  BROUILLON
+  ENVOYE
+  ACCEPTE
+  REFUSE
+  EXPIRE
+}
+
+enum TypeVerre {
+  UNIFOCAL
+  BIFOCAL
+  PROGRESSIF
+  LENTILLE_CONTACT
+}
+
+enum StatutRetour {
+  EN_ATTENTE
+  APPROUVE
+  REFUSE
+  REMBOURSE
+}
+
+enum TypeAction {
+  CREATION
+  MODIFICATION
+  SUPPRESSION
+  CONNEXION
+  DECONNEXION
+  CHANGEMENT_STATUT
+}
+
+enum TypeMouvement {
+  ENTREE
+  SORTIE
+  AJUSTEMENT
+}
+
+// =========================
+// TENANT (BOUTIQUE)
+// =========================
+
+model Tenant {
+  id           Int      @id @default(autoincrement())
+  tenantId     String   @unique @default(uuid())
+
+  nomBoutique String
+  adresse     String
+  telephone   String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  utilisateurs Utilisateur[]
+  patients     Patient[]
+  fournisseurs Fournisseur[]
+  produits     Produit[]
+  ventes       Vente[]
+  commandes    CommandeAtelier[]
+  ordonnances  Ordonnance[]
+  devis        Devis[]
+  retours      Retour[]
+  historiques  HistoriqueAction[]
+  mouvements   MouvementStock[]
+}
+
+// =========================
+// UTILISATEUR
+// =========================
+
+model Utilisateur {
+  id         Int      @id @default(autoincrement())
+  userId     String   @unique @default(uuid())
+
+  nom        String
+  email      String
+  motDePasse String
+  role       Role
+  actif      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  ventes      Vente[]
+  ordonnances Ordonnance[]
+  devis       Devis[]
+  retours     Retour[]
+  paiements   Paiement[]
+  historiques HistoriqueAction[]
+  mouvements  MouvementStock[]
+
+  @@unique([tenantId, email])
+  @@index([userId])
+}
+
+// =========================
+// PATIENT
+// =========================
+
+model Patient {
+  id              Int       @id @default(autoincrement())
+  patientId       String    @unique @default(uuid())
+
+  nomComplet      String
+  telephone       String?
+  profession      String?
+  dateNaissance   DateTime?
+  nomAssurance    String?
+  numeroAssurance String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  tenantId  String
+  tenant    Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  ordonnances Ordonnance[]
+  ventes      Vente[]
+  devis       Devis[]
+
+  @@index([tenantId])
+}
+
+// =========================
+// ORDONNANCE
+// =========================
+
+model Ordonnance {
+  id           Int    @id @default(autoincrement())
+  ordonnanceId String @unique @default(uuid())
+
+  datePrescription  DateTime?
+  nomMedecin           String?
+
+  // Paramètres de l'ordonnance
+  sphereOD          Decimal?
+  cylindreOD        Decimal?
+  axeOD             Int?
+  additionOD        Decimal?
+  ecartPupillaireOD Decimal?
+
+  sphereOG          Decimal?
+  cylindreOG        Decimal?
+  axeOG             Int?
+  additionOG        Decimal?
+  ecartPupillaireOG Decimal?
+
+  // Relations
+  tenantId      String
+  tenant        Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+
+  userId      String?
+  utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [patientId], onDelete: Cascade)
+
+  ventes    Vente[]
+  commandes CommandeAtelier[]
+
+  @@index([ordonnanceId])
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([userId])
+}
+
+// =========================
+// FOURNISSEUR
+// =========================
+
+model Fournisseur {
+  id       Int     @id @default(autoincrement())
+  fournisseurId  String  @unique @default(uuid())
+  tenantId String
+
+  nom     String
+  contact String?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  produits Produit[]
+
+  @@index([tenantId])
+}
+
+// =========================
+// PRODUIT
+// =========================
+
+model Produit {
+  id            Int         @id @default(autoincrement())
+  produitId     String      @unique @default(uuid())
+  tenantId      String
+  fournisseurId String?
+
+  reference       String
+  type            TypeProduit
+  marque          String?
+
+  prixAchat       Float
+  prixVente       Float
+  quantiteEnStock Int         @default(0)
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [fournisseurId], onDelete: SetNull)
+
+  lignesVente  LigneVente[]
+  lignesDevis  LigneDevis[]
+  lignesRetour LigneRetour[]
+  mouvements   MouvementStock[]
+
+  @@unique([tenantId, reference])
+  @@index([tenantId])
+  @@index([fournisseurId])
+}
+
+// =========================
+// DEVIS
+// =========================
+
+model Devis {
+  id      Int @id @default(autoincrement())
+  devisId String @unique @default(uuid())
+
+  tenantId      String
+  patientId     String?
+  userId String
+
+  dateCreation   DateTime    @default(now())
+  dateExpiration DateTime?
+
+  montantTotal Float
+  remise       Float       @default(0)
+  notes        String?
+
+  statut StatutDevis
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  patient     Patient?    @relation(fields: [patientId], references: [patientId], onDelete: SetNull)
+  utilisateur Utilisateur @relation(fields: [userId], references: [userId])
+
+  lignes LigneDevis[]
+  vente  Vente?
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([userId])
+}
+
+// =========================
+// LIGNE DEVIS
+// =========================
+
+model LigneDevis {
+  id           Int @id @default(autoincrement())
+  ligneDevisId String @unique @default(uuid())
+
+  devisId      String
+  produitId    String
+
+  quantite     Int
+  prixUnitaire Float
+
+  devis   Devis   @relation(fields: [devisId], references: [devisId], onDelete: Cascade)
+  produit Produit @relation(fields: [produitId], references: [produitId])
+
+  @@index([devisId])
+  @@index([produitId])
+}
+
+// =========================
+// VENTE
+// =========================
+
+model Vente {
+  id            Int @id @default(autoincrement())
+  venteId       String @unique @default(uuid())
+
+  tenantId  String
+  userId    String
+  patientId String?
+  ordonnanceId  String?
+  devisId       String? @unique
+
+  dateCreation DateTime @default(now())
+
+  montantTotal Float
+  remise       Float          @default(0)
+  resteAPayer  Float          @default(0)
+
+  statut StatutPaiement
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  utilisateur Utilisateur @relation(fields: [userId], references: [userId])
+  patient     Patient?    @relation(fields: [patientId], references: [patientId], onDelete: SetNull)
+  ordonnance  Ordonnance? @relation(fields: [ordonnanceId], references: [ordonnanceId], onDelete: SetNull)
+  devis       Devis?      @relation(fields: [devisId], references: [devisId], onDelete: SetNull)
+
+  lignes          LigneVente[]
+  paiements       Paiement[]
+  commandeAtelier CommandeAtelier?
+  retours         Retour[]
+  mouvements      MouvementStock[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([patientId])
+}
+
+// =========================
+// LIGNE VENTE
+// =========================
+
+model LigneVente {
+  id           Int @id @default(autoincrement())
+  ligneVenteId String @unique @default(uuid())
+
+  venteId      String
+  produitId    String
+
+  quantite     Int
+  prixUnitaire Float
+
+  vente   Vente   @relation(fields: [venteId], references: [venteId], onDelete: Cascade)
+  produit Produit @relation(fields: [produitId], references: [produitId])
+
+  @@index([venteId])
+  @@index([produitId])
+}
+
+// =========================
+// PAIEMENT
+// =========================
+
+model Paiement {
+  id         Int    @id @default(autoincrement())
+  paiementId String @unique @default(uuid())
+
+  venteId String
+  userId  String?
+
+  datePaiement DateTime        @default(now())
+  montant      Float
+  methode      MethodePaiement
+
+  vente       Vente        @relation(fields: [venteId], references: [venteId], onDelete: Cascade)
+  utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@index([venteId])
+  @@index([userId])
+}
+
+// =========================
+// COMMANDE ATELIER
+// =========================
+
+model CommandeAtelier {
+  id         Int    @id @default(autoincrement())
+  commandeId String @unique @default(uuid())
+
+  tenantId     String
+  venteId      String? @unique
+  ordonnanceId String?
+
+  dateCreation      DateTime      @default(now())
+  statut            StatutAtelier
+  dateExecutionJour DateTime?
+
+  typeVerre        TypeVerre?
+  traitements      String[]
+  hauteurMontageOD Decimal?
+  hauteurMontageOG Decimal?
+  notes            String?
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  vente      Vente?      @relation(fields: [venteId], references: [venteId], onDelete: SetNull)
+  ordonnance Ordonnance? @relation(fields: [ordonnanceId], references: [ordonnanceId], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([ordonnanceId])
+}
+
+// =========================
+// RETOUR
+// =========================
+
+model Retour {
+  id       Int    @id @default(autoincrement())
+  retourId String @unique @default(uuid())
+
+  tenantId String
+  venteId  String
+  userId   String
+
+  dateRetour       DateTime     @default(now())
+  motif            String?
+  montantRembourse Float
+  statut           StatutRetour
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  vente       Vente       @relation(fields: [venteId], references: [venteId], onDelete: Restrict)
+  utilisateur Utilisateur @relation(fields: [userId], references: [userId])
+
+  lignes     LigneRetour[]
+  mouvements MouvementStock[]
+
+  @@index([tenantId])
+  @@index([venteId])
+  @@index([userId])
+}
+
+// =========================
+// LIGNE RETOUR
+// =========================
+
+model LigneRetour {
+  id            Int    @id @default(autoincrement())
+  ligneRetourId String @unique @default(uuid())
+
+  retourId  String
+  produitId String
+
+  quantite     Int
+  prixUnitaire Float
+
+  retour  Retour  @relation(fields: [retourId], references: [retourId], onDelete: Cascade)
+  produit Produit @relation(fields: [produitId], references: [produitId])
+
+  @@index([retourId])
+  @@index([produitId])
+}
+
+// =========================
+// HISTORIQUE ACTION
+// =========================
+
+model HistoriqueAction {
+  id           Int    @id @default(autoincrement())
+  historiqueId String @unique @default(uuid())
+
+  tenantId String
+  userId   String?
+
+  action   TypeAction
+  modele   String
+  entiteId String
+
+  anciennesValeurs Json?
+  nouvellesValeurs Json?
+
+  createdAt DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([modele, entiteId])
+  @@index([createdAt])
+}
+
+// =========================
+// MOUVEMENT STOCK
+// =========================
+
+model MouvementStock {
+  id          Int    @id @default(autoincrement())
+  mouvementId String @unique @default(uuid())
+
+  tenantId  String
+  produitId String
+  userId    String?
+  venteId   String?
+  retourId  String?
+
+  type          TypeMouvement
+  quantite      Int
+  quantiteAvant Int
+  quantiteApres Int
+  motif         String?
+
+  createdAt DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  produit     Produit      @relation(fields: [produitId], references: [produitId])
+  utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
+  vente       Vente?       @relation(fields: [venteId], references: [venteId], onDelete: SetNull)
+  retour      Retour?      @relation(fields: [retourId], references: [retourId], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([produitId])
+  @@index([venteId])
+  @@index([retourId])
+  @@index([createdAt])
+}
