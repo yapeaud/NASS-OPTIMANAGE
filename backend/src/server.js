@@ -1,12 +1,18 @@
-// Importation des variables d'environnement
-import "dotenv/config";
-// Importation de l'application express
+import 'dotenv/config';
 import app from './app.js';
 
-// Démarrage du serveur
 const PORT = process.env.PORT;
+const ENV = process.env.NODE_ENV || 'development';
 
-// Démarrage du serveur
 app.listen(PORT, () => {
-    console.log(`API en cours d'exécution sur le port http://localhost:${PORT}`);
+    console.log(`
+╔════════════════════════════════════════════════════╗
+║          NASS-OPTIMANAGE API - Multi-Tenant        ║
+╠════════════════════════════════════════════════════╣
+║  Statut       : Serveur démarré avec succès        ║
+║  Port         : ${String(PORT).padEnd(35)}║
+║  Environnement: ${ENV.padEnd(35)}║
+║  URL          : http://localhost:${String(PORT).padEnd(19)}║
+╚════════════════════════════════════════════════════╝
+    `);
 });
