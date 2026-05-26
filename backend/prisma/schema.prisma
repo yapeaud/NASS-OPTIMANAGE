@@ -1,7 +1,8 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Schéma Prisma pour NASS-OPTIMANAGE
+// Application de gestion multi-boutiques d'optique (multi-tenant)
+// Chaque enregistrement est isolé par tenantId pour séparer les données entre boutiques
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -15,6 +16,7 @@ datasource db {
 // ENUMS
 // =========================
 
+// Moyens de règlement acceptés lors d'un paiement
 enum MethodePaiement {
   ESPECES
   CARTE
@@ -22,19 +24,22 @@ enum MethodePaiement {
   CHEQUE
 }
 
+// État de règlement d'une vente
 enum StatutPaiement {
   PAYE
   PARTIEL
   IMPAYE
 }
 
+// Niveaux d'accès des utilisateurs dans la boutique
 enum Role {
-  SUPER_ADMIN
-  ADMIN
-  VENDEUR
-  MONTEUR
+  SUPER_ADMIN // Accès global (hors tenant)
+  ADMIN       // Gestion complète de la boutique
+  VENDEUR     // Création de ventes et devis
+  MONTEUR     // Gestion des commandes atelier
 }
 
+// Catégories de produits en stock
 enum TypeProduit {
   MONTURE
   VERRE
@@ -42,6 +47,7 @@ enum TypeProduit {
   ACCESSOIRE
 }
 
+// Cycle de vie d'une commande en atelier
 enum StatutAtelier {
   COMMANDE_PASSEE
   EN_COURS
@@ -49,6 +55,7 @@ enum StatutAtelier {
   PRODUIT_PRET
 }
 
+// Cycle de vie d'un devis commercial
 enum StatutDevis {
   BROUILLON
   ENVOYE
@@ -57,6 +64,7 @@ enum StatutDevis {
   EXPIRE
 }
 
+// Types de corrections optiques possibles
 enum TypeVerre {
   UNIFOCAL
   BIFOCAL
@@ -64,6 +72,7 @@ enum TypeVerre {
   LENTILLE_CONTACT
 }
 
+// État de traitement d'une demande de retour produit
 enum StatutRetour {
   EN_ATTENTE
   APPROUVE
@@ -71,6 +80,7 @@ enum StatutRetour {
   REMBOURSE
 }
 
+// Types d'événements tracés dans l'historique d'audit
 enum TypeAction {
   CREATION
   MODIFICATION
@@ -80,18 +90,22 @@ enum TypeAction {
   CHANGEMENT_STATUT
 }
 
+// Direction d'un mouvement de stock
 enum TypeMouvement {
-  ENTREE
-  SORTIE
-  AJUSTEMENT
+  ENTREE      // Réception fournisseur ou retour approuvé
+  SORTIE      // Vente ou perte
+  AJUSTEMENT  // Correction manuelle d'inventaire
 }
 
 // =========================
 // TENANT (BOUTIQUE)
 // =========================
 
+// Représente une boutique d'optique indépendante.
+// Toutes les autres entités sont rattachées à un Tenant via tenantId.
 model Tenant {
   id           Int      @id @default(autoincrement())
+  // Identifiant public UUID utilisé dans les relations inter-tables
   tenantId     String   @unique @default(uuid())
 
   nomBoutique String
@@ -117,13 +131,15 @@ model Tenant {
 // UTILISATEUR
 // =========================
 
+// Membre du personnel de la boutique avec un rôle métier.
+// L'unicité [tenantId, email] permet le même email dans deux boutiques différentes.
 model Utilisateur {
   id         Int      @id @default(autoincrement())
   userId     String   @unique @default(uuid())
 
   nom        String
   email      String
-  motDePasse String
+  motDePasse String   // Stocké hashé (bcrypt)
   role       Role
   actif      Boolean  @default(true)
   createdAt  DateTime @default(now())
@@ -148,6 +164,8 @@ model Utilisateur {
 // PATIENT
 // =========================
 
+// Client porteur de lunettes ou lentilles suivi par la boutique.
+// Les champs assurance permettent la prise en charge mutuelle.
 model Patient {
   id              Int       @id @default(autoincrement())
   patientId       String    @unique @default(uuid())
@@ -175,20 +193,24 @@ model Patient {
 // ORDONNANCE
 // =========================
 
+// Prescription optique établie par un médecin pour un patient.
+// OD = Oeil Droit, OG = Oeil Gauche (convention opticien).
+// Une ordonnance peut déclencher plusieurs ventes et commandes atelier.
 model Ordonnance {
   id           Int    @id @default(autoincrement())
   ordonnanceId String @unique @default(uuid())
 
   datePrescription  DateTime?
-  nomMedecin           String?
+  nomMedecin        String?
 
-  // Paramètres de l'ordonnance
-  sphereOD          Decimal?
-  cylindreOD        Decimal?
-  axeOD             Int?
-  additionOD        Decimal?
-  ecartPupillaireOD Decimal?
+  // Paramètres de correction — Oeil Droit
+  sphereOD          Decimal?  // Correction de la myopie/hypermétropie
+  cylindreOD        Decimal?  // Correction de l'astigmatisme
+  axeOD             Int?      // Orientation du cylindre (0–180°)
+  additionOD        Decimal?  // Supplément pour presbytie (verres progressifs)
+  ecartPupillaireOD Decimal?  // Distance pupillaire (mm)
 
+  // Paramètres de correction — Oeil Gauche
   sphereOG          Decimal?
   cylindreOG        Decimal?
   axeOG             Int?
@@ -199,6 +221,7 @@ model Ordonnance {
   tenantId      String
   tenant        Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
+  // Utilisateur qui a saisi l'ordonnance (nullable car peut être supprimé)
   userId      String?
   utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
 
@@ -218,10 +241,11 @@ model Ordonnance {
 // FOURNISSEUR
 // =========================
 
+// Fournisseur de produits (montures, verres, lentilles…) pour la boutique.
 model Fournisseur {
-  id       Int     @id @default(autoincrement())
-  fournisseurId  String  @unique @default(uuid())
-  tenantId String
+  id            Int     @id @default(autoincrement())
+  fournisseurId String  @unique @default(uuid())
+  tenantId      String
 
   nom     String
   contact String?
@@ -236,6 +260,8 @@ model Fournisseur {
 // PRODUIT
 // =========================
 
+// Article en stock. La référence est unique par boutique.
+// prixAchat/prixVente permettent le calcul de la marge commerciale.
 model Produit {
   id            Int         @id @default(autoincrement())
   produitId     String      @unique @default(uuid())
@@ -251,6 +277,7 @@ model Produit {
   quantiteEnStock Int         @default(0)
 
   tenant      Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  // SetNull pour conserver le produit si le fournisseur est supprimé
   fournisseur Fournisseur? @relation(fields: [fournisseurId], references: [fournisseurId], onDelete: SetNull)
 
   lignesVente  LigneVente[]
@@ -258,6 +285,7 @@ model Produit {
   lignesRetour LigneRetour[]
   mouvements   MouvementStock[]
 
+  // Unicité de la référence au sein d'une boutique
   @@unique([tenantId, reference])
   @@index([tenantId])
   @@index([fournisseurId])
@@ -267,16 +295,18 @@ model Produit {
 // DEVIS
 // =========================
 
+// Proposition commerciale envoyée au patient avant validation en vente.
+// Un devis accepté peut être converti en Vente (relation devis→vente 1:1).
 model Devis {
-  id      Int @id @default(autoincrement())
+  id      Int    @id @default(autoincrement())
   devisId String @unique @default(uuid())
 
   tenantId      String
   patientId     String?
-  userId String
+  userId        String
 
   dateCreation   DateTime    @default(now())
-  dateExpiration DateTime?
+  dateExpiration DateTime?   // Passée cette date, statut devient EXPIRE
 
   montantTotal Float
   remise       Float       @default(0)
@@ -289,7 +319,7 @@ model Devis {
   utilisateur Utilisateur @relation(fields: [userId], references: [userId])
 
   lignes LigneDevis[]
-  vente  Vente?
+  vente  Vente?        // Renseigné quand le devis est converti en vente
 
   @@index([tenantId])
   @@index([patientId])
@@ -300,15 +330,16 @@ model Devis {
 // LIGNE DEVIS
 // =========================
 
+// Détail d'un produit dans un devis (quantité + prix figé au moment de la création).
 model LigneDevis {
-  id           Int @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   ligneDevisId String @unique @default(uuid())
 
   devisId      String
   produitId    String
 
   quantite     Int
-  prixUnitaire Float
+  prixUnitaire Float  // Prix figé à la date du devis, indépendant du catalogue
 
   devis   Devis   @relation(fields: [devisId], references: [devisId], onDelete: Cascade)
   produit Produit @relation(fields: [produitId], references: [produitId])
@@ -321,21 +352,24 @@ model LigneDevis {
 // VENTE
 // =========================
 
+// Transaction commerciale principale.
+// resteAPayer est mis à jour à chaque paiement partiel enregistré.
+// Une vente peut être liée à un devis converti et/ou à une ordonnance.
 model Vente {
-  id            Int @id @default(autoincrement())
-  venteId       String @unique @default(uuid())
+  id      Int    @id @default(autoincrement())
+  venteId String @unique @default(uuid())
 
-  tenantId  String
-  userId    String
-  patientId String?
-  ordonnanceId  String?
-  devisId       String? @unique
+  tenantId     String
+  userId       String
+  patientId    String?
+  ordonnanceId String?
+  devisId      String? @unique // @unique car un devis ne peut générer qu'une vente
 
   dateCreation DateTime @default(now())
 
   montantTotal Float
   remise       Float          @default(0)
-  resteAPayer  Float          @default(0)
+  resteAPayer  Float          @default(0) // Recalculé après chaque Paiement
 
   statut StatutPaiement
 
@@ -347,7 +381,7 @@ model Vente {
 
   lignes          LigneVente[]
   paiements       Paiement[]
-  commandeAtelier CommandeAtelier?
+  commandeAtelier CommandeAtelier? // Commande en atelier associée (montage des verres)
   retours         Retour[]
   mouvements      MouvementStock[]
 
@@ -360,15 +394,16 @@ model Vente {
 // LIGNE VENTE
 // =========================
 
+// Détail d'un produit vendu (quantité + prix figé au moment de la vente).
 model LigneVente {
-  id           Int @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   ligneVenteId String @unique @default(uuid())
 
   venteId      String
   produitId    String
 
   quantite     Int
-  prixUnitaire Float
+  prixUnitaire Float  // Prix figé à la date de la vente
 
   vente   Vente   @relation(fields: [venteId], references: [venteId], onDelete: Cascade)
   produit Produit @relation(fields: [produitId], references: [produitId])
@@ -381,12 +416,14 @@ model LigneVente {
 // PAIEMENT
 // =========================
 
+// Encaissement partiel ou total d'une vente.
+// Plusieurs paiements peuvent être rattachés à la même vente (règlement échelonné).
 model Paiement {
   id         Int    @id @default(autoincrement())
   paiementId String @unique @default(uuid())
 
   venteId String
-  userId  String?
+  userId  String? // Caissier ayant enregistré le paiement (nullable si supprimé)
 
   datePaiement DateTime        @default(now())
   montant      Float
@@ -403,22 +440,25 @@ model Paiement {
 // COMMANDE ATELIER
 // =========================
 
+// Ordre de montage/taille des verres adressé à l'atelier optique.
+// Liée à une vente (optionnel) et peut référencer une ordonnance directement.
+// traitements[] liste les options de traitement (antireflet, antirayure…).
 model CommandeAtelier {
   id         Int    @id @default(autoincrement())
   commandeId String @unique @default(uuid())
 
   tenantId     String
-  venteId      String? @unique
+  venteId      String? @unique // Une vente ne génère qu'une commande atelier
   ordonnanceId String?
 
   dateCreation      DateTime      @default(now())
   statut            StatutAtelier
-  dateExecutionJour DateTime?
+  dateExecutionJour DateTime?     // Date prévue de finalisation
 
   typeVerre        TypeVerre?
-  traitements      String[]
-  hauteurMontageOD Decimal?
-  hauteurMontageOG Decimal?
+  traitements      String[]   // Ex: ["antireflet", "photochromique"]
+  hauteurMontageOD Decimal?   // Hauteur de centrage pupillaire (mm) OD
+  hauteurMontageOG Decimal?   // Hauteur de centrage pupillaire (mm) OG
   notes            String?
 
   tenant     Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
@@ -433,13 +473,15 @@ model CommandeAtelier {
 // RETOUR
 // =========================
 
+// Demande de retour produit initiée par un patient après une vente.
+// Restrict sur la vente : impossible de supprimer une vente ayant des retours.
 model Retour {
   id       Int    @id @default(autoincrement())
   retourId String @unique @default(uuid())
 
   tenantId String
   venteId  String
-  userId   String
+  userId   String // Utilisateur ayant traité le retour
 
   dateRetour       DateTime     @default(now())
   motif            String?
@@ -447,6 +489,7 @@ model Retour {
   statut           StatutRetour
 
   tenant      Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  // Restrict : protège l'intégrité comptable — ne pas supprimer une vente remboursée
   vente       Vente       @relation(fields: [venteId], references: [venteId], onDelete: Restrict)
   utilisateur Utilisateur @relation(fields: [userId], references: [userId])
 
@@ -462,6 +505,7 @@ model Retour {
 // LIGNE RETOUR
 // =========================
 
+// Détail des produits retournés (peut être un sous-ensemble de la vente d'origine).
 model LigneRetour {
   id            Int    @id @default(autoincrement())
   ligneRetourId String @unique @default(uuid())
@@ -470,7 +514,7 @@ model LigneRetour {
   produitId String
 
   quantite     Int
-  prixUnitaire Float
+  prixUnitaire Float // Prix au moment de la vente d'origine (base de remboursement)
 
   retour  Retour  @relation(fields: [retourId], references: [retourId], onDelete: Cascade)
   produit Produit @relation(fields: [produitId], references: [produitId])
@@ -483,19 +527,21 @@ model LigneRetour {
 // HISTORIQUE ACTION
 // =========================
 
+// Journal d'audit immuable de toutes les actions métier sensibles.
+// anciennesValeurs / nouvellesValeurs stockent un diff JSON pour comparaison.
 model HistoriqueAction {
   id           Int    @id @default(autoincrement())
   historiqueId String @unique @default(uuid())
 
   tenantId String
-  userId   String?
+  userId   String? // Nullable : conserve la trace même si l'utilisateur est supprimé
 
   action   TypeAction
-  modele   String
-  entiteId String
+  modele   String     // Nom du modèle Prisma affecté (ex: "Vente", "Produit")
+  entiteId String     // UUID de l'enregistrement affecté
 
-  anciennesValeurs Json?
-  nouvellesValeurs Json?
+  anciennesValeurs Json? // État avant modification (null pour CREATION)
+  nouvellesValeurs Json? // État après modification (null pour SUPPRESSION)
 
   createdAt DateTime @default(now())
 
@@ -504,7 +550,7 @@ model HistoriqueAction {
 
   @@index([tenantId])
   @@index([userId])
-  @@index([modele, entiteId])
+  @@index([modele, entiteId]) // Recherche rapide de l'historique d'un enregistrement
   @@index([createdAt])
 }
 
@@ -512,21 +558,23 @@ model HistoriqueAction {
 // MOUVEMENT STOCK
 // =========================
 
+// Trace chaque variation du stock d'un produit avec les quantités avant/après.
+// quantiteAvant + quantite = quantiteApres (vérification d'intégrité possible).
 model MouvementStock {
   id          Int    @id @default(autoincrement())
   mouvementId String @unique @default(uuid())
 
   tenantId  String
   produitId String
-  userId    String?
-  venteId   String?
-  retourId  String?
+  userId    String? // Auteur du mouvement (nullable si utilisateur supprimé)
+  venteId   String? // Renseigné si le mouvement provient d'une vente
+  retourId  String? // Renseigné si le mouvement provient d'un retour approuvé
 
   type          TypeMouvement
-  quantite      Int
-  quantiteAvant Int
-  quantiteApres Int
-  motif         String?
+  quantite      Int           // Valeur absolue de la variation
+  quantiteAvant Int           // Stock avant ce mouvement
+  quantiteApres Int           // Stock après ce mouvement
+  motif         String?       // Précision libre (ex: "inventaire annuel")
 
   createdAt DateTime @default(now())
 
