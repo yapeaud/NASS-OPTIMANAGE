@@ -34,9 +34,9 @@ enum StatutPaiement {
 // Niveaux d'accès des utilisateurs dans la boutique
 enum Role {
   SUPER_ADMIN // Accès global (hors tenant)
-  ADMIN       // Gestion complète de la boutique
-  VENDEUR     // Création de ventes et devis
-  MONTEUR     // Gestion des commandes atelier
+  ADMIN // Gestion complète de la boutique
+  VENDEUR // Création de ventes et devis
+  MONTEUR // Gestion des commandes atelier
 }
 
 // Catégories de produits en stock
@@ -92,9 +92,9 @@ enum TypeAction {
 
 // Direction d'un mouvement de stock
 enum TypeMouvement {
-  ENTREE      // Réception fournisseur ou retour approuvé
-  SORTIE      // Vente ou perte
-  AJUSTEMENT  // Correction manuelle d'inventaire
+  ENTREE // Réception fournisseur ou retour approuvé
+  SORTIE // Vente ou perte
+  AJUSTEMENT // Correction manuelle d'inventaire
 }
 
 // =========================
@@ -104,9 +104,9 @@ enum TypeMouvement {
 // Représente une boutique d'optique indépendante.
 // Toutes les autres entités sont rattachées à un Tenant via tenantId.
 model Tenant {
-  id           Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   // Identifiant public UUID utilisé dans les relations inter-tables
-  tenantId     String   @unique @default(uuid())
+  tenantId String @unique @default(uuid())
 
   nomBoutique String
   adresse     String
@@ -134,19 +134,19 @@ model Tenant {
 // Membre du personnel de la boutique avec un rôle métier.
 // L'unicité [tenantId, email] permet le même email dans deux boutiques différentes.
 model Utilisateur {
-  id         Int      @id @default(autoincrement())
-  userId     String   @unique @default(uuid())
+  id     Int    @id @default(autoincrement())
+  userId String @unique @default(uuid())
 
   nom        String
   email      String
-  motDePasse String   // Stocké hashé (bcrypt)
+  motDePasse String // Stocké hashé (bcrypt)
   role       Role
   actif      Boolean  @default(true)
   createdAt  DateTime @default(now())
 
   // Relations
-  tenantId    String
-  tenant      Tenant  @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   ventes      Vente[]
   ordonnances Ordonnance[]
@@ -167,8 +167,8 @@ model Utilisateur {
 // Client porteur de lunettes ou lentilles suivi par la boutique.
 // Les champs assurance permettent la prise en charge mutuelle.
 model Patient {
-  id              Int       @id @default(autoincrement())
-  patientId       String    @unique @default(uuid())
+  id        Int    @id @default(autoincrement())
+  patientId String @unique @default(uuid())
 
   nomComplet      String
   telephone       String?
@@ -179,8 +179,8 @@ model Patient {
   createdAt       DateTime  @default(now())
 
   // Relations
-  tenantId  String
-  tenant    Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   ordonnances Ordonnance[]
   ventes      Vente[]
@@ -200,15 +200,15 @@ model Ordonnance {
   id           Int    @id @default(autoincrement())
   ordonnanceId String @unique @default(uuid())
 
-  datePrescription  DateTime?
-  nomMedecin        String?
+  datePrescription DateTime?
+  nomMedecin       String?
 
   // Paramètres de correction — Oeil Droit
-  sphereOD          Decimal?  // Correction de la myopie/hypermétropie
-  cylindreOD        Decimal?  // Correction de l'astigmatisme
-  axeOD             Int?      // Orientation du cylindre (0–180°)
-  additionOD        Decimal?  // Supplément pour presbytie (verres progressifs)
-  ecartPupillaireOD Decimal?  // Distance pupillaire (mm)
+  sphereOD          Decimal? // Correction de la myopie/hypermétropie
+  cylindreOD        Decimal? // Correction de l'astigmatisme
+  axeOD             Int? // Orientation du cylindre (0–180°)
+  additionOD        Decimal? // Supplément pour presbytie (verres progressifs)
+  ecartPupillaireOD Decimal? // Distance pupillaire (mm)
 
   // Paramètres de correction — Oeil Gauche
   sphereOG          Decimal?
@@ -218,15 +218,15 @@ model Ordonnance {
   ecartPupillaireOG Decimal?
 
   // Relations
-  tenantId      String
-  tenant        Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   // Utilisateur qui a saisi l'ordonnance (nullable car peut être supprimé)
   userId      String?
   utilisateur Utilisateur? @relation(fields: [userId], references: [userId], onDelete: SetNull)
 
-  patientId     String
-  patient       Patient      @relation(fields: [patientId], references: [patientId], onDelete: Cascade)
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [patientId], onDelete: Cascade)
 
   ventes    Vente[]
   commandes CommandeAtelier[]
@@ -243,8 +243,8 @@ model Ordonnance {
 
 // Fournisseur de produits (montures, verres, lentilles…) pour la boutique.
 model Fournisseur {
-  id            Int     @id @default(autoincrement())
-  fournisseurId String  @unique @default(uuid())
+  id            Int    @id @default(autoincrement())
+  fournisseurId String @unique @default(uuid())
   tenantId      String
 
   nom     String
@@ -263,18 +263,18 @@ model Fournisseur {
 // Article en stock. La référence est unique par boutique.
 // prixAchat/prixVente permettent le calcul de la marge commerciale.
 model Produit {
-  id            Int         @id @default(autoincrement())
-  produitId     String      @unique @default(uuid())
+  id            Int     @id @default(autoincrement())
+  produitId     String  @unique @default(uuid())
   tenantId      String
   fournisseurId String?
 
-  reference       String
-  type            TypeProduit
-  marque          String?
+  reference String
+  type      TypeProduit
+  marque    String?
 
   prixAchat       Float
   prixVente       Float
-  quantiteEnStock Int         @default(0)
+  quantiteEnStock Int   @default(0)
 
   tenant      Tenant       @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
   // SetNull pour conserver le produit si le fournisseur est supprimé
@@ -301,15 +301,15 @@ model Devis {
   id      Int    @id @default(autoincrement())
   devisId String @unique @default(uuid())
 
-  tenantId      String
-  patientId     String?
-  userId        String
+  tenantId  String
+  patientId String?
+  userId    String
 
-  dateCreation   DateTime    @default(now())
-  dateExpiration DateTime?   // Passée cette date, statut devient EXPIRE
+  dateCreation   DateTime  @default(now())
+  dateExpiration DateTime? // Passée cette date, statut devient EXPIRE
 
   montantTotal Float
-  remise       Float       @default(0)
+  remise       Float   @default(0)
   notes        String?
 
   statut StatutDevis
@@ -319,7 +319,7 @@ model Devis {
   utilisateur Utilisateur @relation(fields: [userId], references: [userId])
 
   lignes LigneDevis[]
-  vente  Vente?        // Renseigné quand le devis est converti en vente
+  vente  Vente? // Renseigné quand le devis est converti en vente
 
   @@index([tenantId])
   @@index([patientId])
@@ -335,11 +335,11 @@ model LigneDevis {
   id           Int    @id @default(autoincrement())
   ligneDevisId String @unique @default(uuid())
 
-  devisId      String
-  produitId    String
+  devisId   String
+  produitId String
 
   quantite     Int
-  prixUnitaire Float  // Prix figé à la date du devis, indépendant du catalogue
+  prixUnitaire Float // Prix figé à la date du devis, indépendant du catalogue
 
   devis   Devis   @relation(fields: [devisId], references: [devisId], onDelete: Cascade)
   produit Produit @relation(fields: [produitId], references: [produitId])
@@ -368,8 +368,8 @@ model Vente {
   dateCreation DateTime @default(now())
 
   montantTotal Float
-  remise       Float          @default(0)
-  resteAPayer  Float          @default(0) // Recalculé après chaque Paiement
+  remise       Float @default(0)
+  resteAPayer  Float @default(0) // Recalculé après chaque Paiement
 
   statut StatutPaiement
 
@@ -399,11 +399,11 @@ model LigneVente {
   id           Int    @id @default(autoincrement())
   ligneVenteId String @unique @default(uuid())
 
-  venteId      String
-  produitId    String
+  venteId   String
+  produitId String
 
   quantite     Int
-  prixUnitaire Float  // Prix figé à la date de la vente
+  prixUnitaire Float // Prix figé à la date de la vente
 
   vente   Vente   @relation(fields: [venteId], references: [venteId], onDelete: Cascade)
   produit Produit @relation(fields: [produitId], references: [produitId])
@@ -453,12 +453,12 @@ model CommandeAtelier {
 
   dateCreation      DateTime      @default(now())
   statut            StatutAtelier
-  dateExecutionJour DateTime?     // Date prévue de finalisation
+  dateExecutionJour DateTime? // Date prévue de finalisation
 
   typeVerre        TypeVerre?
-  traitements      String[]   // Ex: ["antireflet", "photochromique"]
-  hauteurMontageOD Decimal?   // Hauteur de centrage pupillaire (mm) OD
-  hauteurMontageOG Decimal?   // Hauteur de centrage pupillaire (mm) OG
+  traitements      String[] // Ex: ["antireflet", "photochromique"]
+  hauteurMontageOD Decimal? // Hauteur de centrage pupillaire (mm) OD
+  hauteurMontageOG Decimal? // Hauteur de centrage pupillaire (mm) OG
   notes            String?
 
   tenant     Tenant      @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
@@ -537,8 +537,8 @@ model HistoriqueAction {
   userId   String? // Nullable : conserve la trace même si l'utilisateur est supprimé
 
   action   TypeAction
-  modele   String     // Nom du modèle Prisma affecté (ex: "Vente", "Produit")
-  entiteId String     // UUID de l'enregistrement affecté
+  modele   String // Nom du modèle Prisma affecté (ex: "Vente", "Produit")
+  entiteId String // UUID de l'enregistrement affecté
 
   anciennesValeurs Json? // État avant modification (null pour CREATION)
   nouvellesValeurs Json? // État après modification (null pour SUPPRESSION)
@@ -571,10 +571,10 @@ model MouvementStock {
   retourId  String? // Renseigné si le mouvement provient d'un retour approuvé
 
   type          TypeMouvement
-  quantite      Int           // Valeur absolue de la variation
-  quantiteAvant Int           // Stock avant ce mouvement
-  quantiteApres Int           // Stock après ce mouvement
-  motif         String?       // Précision libre (ex: "inventaire annuel")
+  quantite      Int // Valeur absolue de la variation
+  quantiteAvant Int // Stock avant ce mouvement
+  quantiteApres Int // Stock après ce mouvement
+  motif         String? // Précision libre (ex: "inventaire annuel")
 
   createdAt DateTime @default(now())
 
