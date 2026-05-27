@@ -5,7 +5,7 @@ import morgan from 'morgan';
 
 // Import des routes
 import tenantRoutes from './routes/tenant.route.js';
-// import utilisateurRoutes from './routes/utilisateur.route.js';
+import utilisateurRoutes from './routes/utilisateur.route.js';
 // import patientRoutes from './routes/patient.route.js';
 // import venteRoutes from './routes/vente.route.js';
 // ... autres routes

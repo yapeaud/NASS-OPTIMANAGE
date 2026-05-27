@@ -1,7 +1,7 @@
 {
   "name": "nass-optimanage-back",
   "version": "1.0.0",
-  "description": "API nass-optimanage-back",
+  "description": "API multi-tenant pour la gestion de boutiques d'optique",
   "license": "ISC",
   "author": "Yapeaud Beda",
   "type": "module",
