@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import tenantRoutes from './routes/tenant.route.js';
 import utilisateurRoutes from './routes/utilisateur.route.js';
 import patientRoutes from './routes/patient.route.js';
+import produitRoutes from './routes/produit.route.js';
 // import venteRoutes from './routes/vente.route.js';
 // ... autres routes
 
@@ -69,7 +70,7 @@ app.get('/api', (req, res) => {
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/utilisateurs', utilisateurRoutes);
 app.use('/api/patients', patientRoutes);
-// app.use('/api/produits', produitRoutes);
+app.use('/api/produits', produitRoutes);
 // app.use('/api/ventes', venteRoutes);
 // app.use('/api/devis', devisRoutes);
 // app.use('/api/ordonnances', ordonnanceRoutes);
