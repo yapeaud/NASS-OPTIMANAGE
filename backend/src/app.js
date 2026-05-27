@@ -8,7 +8,7 @@ import tenantRoutes from './routes/tenant.route.js';
 import utilisateurRoutes from './routes/utilisateur.route.js';
 import patientRoutes from './routes/patient.route.js';
 import produitRoutes from './routes/produit.route.js';
-// import venteRoutes from './routes/vente.route.js';
+import venteRoutes from './routes/vente.route.js';
 // ... autres routes
 
 const app = express();
@@ -71,7 +71,7 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/utilisateurs', utilisateurRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/produits', produitRoutes);
-// app.use('/api/ventes', venteRoutes);
+app.use('/api/ventes', venteRoutes);
 // app.use('/api/devis', devisRoutes);
 // app.use('/api/ordonnances', ordonnanceRoutes);
 // app.use('/api/commandes', commandeRoutes);
