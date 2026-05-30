@@ -1,5 +1,5 @@
 import pkg from '@prisma/client';
-const { Prisma } = pkg;
+const { Role } = pkg;
 import { prisma } from '../lib/prisma.js';
 
 /**
