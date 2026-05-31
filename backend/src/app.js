@@ -11,7 +11,7 @@ import produitRoutes from './routes/produit.route.js';
 import venteRoutes from './routes/vente.route.js';
 import devisRoutes from './routes/devis.route.js';
 import ordonnanceRoutes from './routes/ordonnance.route.js';
-// import commandeRoutes from './routes/commande.route.js';
+import commandeRoutes from './routes/commandeAtelier.route.js';
 // import retourRoutes from './routes/retour.route.js';
 // import fournisseurRoutes from './routes/fournisseur.route.js'; 
 
@@ -78,7 +78,7 @@ app.use('/api/produits', produitRoutes);
 app.use('/api/ventes', venteRoutes);
 app.use('/api/devis', devisRoutes);
 app.use('/api/ordonnances', ordonnanceRoutes);
-// app.use('/api/commandes', commandeRoutes);
+app.use('/api/commandes', commandeRoutes);
 // app.use('/api/retours', retourRoutes);
 // app.use('/api/fournisseurs', fournisseurRoutes);
 
